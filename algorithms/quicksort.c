@@ -46,7 +46,7 @@ int partition(int v[], int low, int high){
     int i = low -1;
     int j = low;
     /* if the value at j is less than the pivot, increment i and swap (i and j)*/
-    for(; j < high; j++){
+    for(; j < high; j++){  
         if( v[j] < pivot){
             swap(v,++i, j);
         }
