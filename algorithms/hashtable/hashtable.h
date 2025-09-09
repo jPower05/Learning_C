@@ -2,8 +2,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 
 typedef struct _hashtable hashtable;
+typedef struct _entry entry;
 typedef uint64_t (hashfunction) (const char*, size_t);
 
 hashtable *hashtable_create(uint32_t size, hashfunction *hf);

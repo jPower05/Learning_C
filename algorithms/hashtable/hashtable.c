@@ -3,14 +3,13 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 
-typedef struct _entry{
+struct _entry{
     char *key;
     void *object;
     struct _entry *next;
-}entry;
+};
 
 struct _hashtable{
     uint32_t size;
@@ -33,6 +32,16 @@ hashtable *hashtable_create(uint32_t size, hashfunction *hf){
 
 
 void hashtable_destroy(hashtable *ht){
+    // free up individual elements
+    for(uint32_t i = 0; i < ht->size; i++){
+        while(ht->elements[i]){
+            entry *tmp = ht->elements[i];
+            ht->elements[i] = ht->elements[i]->next;
+            free(tmp->key);
+            free(tmp->object);
+            free(tmp);
+        }
+    }
     free(ht->elements);
     free(ht);
 }
@@ -68,8 +77,14 @@ bool hashtable_insert(hashtable *ht, const char *key, void *obj){
     // create new entry
     entry *e = malloc(sizeof(*e));
     e->object = obj;
-    e->key = malloc(strlen(key)+1);
-    strcpy(e->key, key);
+    
+    //allocate space for the string and then copy it
+    //e->key = malloc(strlen(key)+1);
+    //strcpy(e->key, key);
+
+    // replaced using string.h function
+    e->key = strdup(key);
+
     // insert entry -> add the new element to the start of the elements list
     // setting it as its head and setting the previous head to be the new elements
     // next
