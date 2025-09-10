@@ -1,4 +1,5 @@
 #include "hashtable.h"
+#include <stdio.h>
 
 uint64_t hash(const char *name, size_t length){
     uint64_t hash_value = 0;
@@ -35,7 +36,18 @@ int main(){
 
     hashtable_print(ht);
 
-    hashtable_delete(ht, "Jacob");
+    // Delete
+    person *deleted = (person *)hashtable_delete(ht, "Jacob");
+    if (deleted) {
+        printf("Deleted: %s (%d)\n", deleted->name, deleted->age);
+        free(deleted->name);
+        free(deleted);
+    }
+
+    free(ron->name);
+    free(ron);
+
+
     hashtable_print(ht);
     hashtable_destroy(ht);
 

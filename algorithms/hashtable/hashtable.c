@@ -111,21 +111,26 @@ void *hashtable_delete(hashtable *ht, const char *key){
         return false;
     }
     size_t index = hashtable_index(ht, key);
-    entry *tmp = ht->elements[index];
+    entry *current = ht->elements[index];
     entry *prev = NULL;
-    while(tmp != NULL && strcmp(tmp->key, key) != 0){
-        prev = tmp;
-        tmp = tmp->next;
+
+    while (current) {
+        if (strcmp(current->key, key) == 0) {
+            // Match found: remove from chain
+            if (prev) {
+                prev->next = current->next;
+            } else {
+                ht->elements[index] = current->next;
+            }
+
+            void *value = current->object;
+            free(current->key);
+            free(current);  // free the entry struct, but not the value
+            return value;
+        }
+        prev = current;
+        current = current->next;
     }
-    if(tmp == NULL) return NULL;
-    if(prev == NULL){
-        // deleting the head of the list
-        ht->elements[index] = tmp->next;
-    }else{
-        // deleting from not the head
-        prev->next = tmp->next;
-    }
-    void *result = tmp->object;
-    free(tmp);
-    return result;
+
+    return NULL;  // Not found
 }
