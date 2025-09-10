@@ -1,13 +1,9 @@
-# ignore compiled c object files and binaries
+# Ignore compiled C objects and binaries
 *.o
 *.out
 *.obj
 *.exe
 a.out
 
-# Ignore all files without an extension
-*
-!*/
-!*.* 
-
-
+# Ignore extensionless files
+*.
