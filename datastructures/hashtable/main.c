@@ -26,13 +26,13 @@ int main(){
     jacob->name = strdup("Jacob");
     jacob->age = 11;
 
-    person *ron = malloc(sizeof(person));
-    ron->name = strdup("Ron");
-    ron->age = 11;
+    // person *ron = malloc(sizeof(person));
+    // ron->name = strdup("Ron");
+    // ron->age = 11;
 
 
     hashtable_insert(ht, jacob->name, jacob);
-    hashtable_insert(ht, ron->name, ron);
+    //hashtable_insert(ht, ron->name, ron);
 
     hashtable_print(ht);
 
@@ -44,8 +44,8 @@ int main(){
         free(deleted);
     }
 
-    free(ron->name);
-    free(ron);
+    //free(ron->name);
+    //free(ron);
 
 
     hashtable_print(ht);
