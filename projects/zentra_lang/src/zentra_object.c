@@ -20,7 +20,7 @@ zentra_obj_t *new_zentra_float(float value){
     return obj;
 }
 
-zentra_obj_t *new_zentra_string(char *value){
+zentra_obj_t *new_zentra_string(const char *value){
     zentra_obj_t *obj = malloc(sizeof(zentra_obj_t));
     if(obj == NULL){
          return NULL;
@@ -29,6 +29,7 @@ zentra_obj_t *new_zentra_string(char *value){
 
     obj->data.v_string = malloc(strlen(value)+1);
     if(obj->data.v_string == NULL){
+        free(obj);
         return NULL;
     }
     strcpy(obj->data.v_string, value);
@@ -66,8 +67,7 @@ zentra_obj_t *new_zentra_array(size_t capacity){
     if(!arr){
         return NULL;
     }
-
-    arr->size = 0;
+     
     arr->capacity = capacity;
     arr->elements = calloc(arr->capacity, sizeof(zentra_obj_t *));  // size of a pointer
     if (!arr->elements) {
@@ -92,10 +92,11 @@ void free_zentra_object(zentra_obj_t *obj) {
     if (!obj) return;
 
     switch (obj->type) {
-        case STRING:
+        case STRING:{
             free(obj->data.v_string);
             break;
-        case VECTOR3:
+        }
+        case VECTOR3:{
             if (obj->data.v_vector3) {
                 free_zentra_object(obj->data.v_vector3->x);
                 free_zentra_object(obj->data.v_vector3->y);
@@ -103,10 +104,11 @@ void free_zentra_object(zentra_obj_t *obj) {
                 free(obj->data.v_vector3);
             }
             break;
-        case ARRAY:
+        }
+        case ARRAY:{
             zentra_array_t *arr = obj->data.v_array;
             if (arr) {
-                for (size_t i = 0; i < arr->size; ++i) {
+                for (size_t i = 0; i < arr->capacity; ++i) {
                     if (arr->elements[i]) {
                         free_zentra_object(arr->elements[i]);  // Recursive free
                     }
@@ -115,6 +117,7 @@ void free_zentra_object(zentra_obj_t *obj) {
                 free(arr);          // Free the array structure
             }
             break;
+        }
         default:
             // No dynamic memory for int/float
             break;

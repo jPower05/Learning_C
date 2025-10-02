@@ -1,5 +1,5 @@
 #include <CUnit/CUnit.h>
-#include "zentra_object.h"
+#include "../src/zentra_object.h"
 #include <stdlib.h>
 
 // Your actual test case function
@@ -81,7 +81,6 @@ void test_new_zentra_array(){
     zentra_array_t *arr = arr_obj->data.v_array;
     CU_ASSERT_PTR_NOT_NULL(arr);
     CU_ASSERT_EQUAL(arr->capacity, 3);
-    CU_ASSERT_EQUAL(arr->size, 0);
 
     // Elements should be NULL (calloc'd)
     for (size_t i = 0; i < arr->capacity; ++i) {
@@ -91,7 +90,6 @@ void test_new_zentra_array(){
     // Manually insert values
     arr->elements[0] = new_zentra_integer(10);
     arr->elements[1] = new_zentra_float(2.5f);
-    arr->size = 2;
 
     // Verify inserted values
     CU_ASSERT_EQUAL(arr->elements[0]->type, INTEGER);
