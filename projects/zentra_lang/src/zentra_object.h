@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdbool.h>
 
-// forward declare
+// Forward declarations (opaque types)
 typedef struct ZentraObject zentra_obj_t;
 typedef struct ZentraArray zentra_array_t;
 
@@ -40,6 +40,7 @@ typedef struct ZentraObject{
 } zentra_obj_t;
 
 
+
 void free_zentra_object(zentra_obj_t *obj);
 zentra_obj_t *new_zentra_integer(int value);
 zentra_obj_t *new_zentra_float(float value);
@@ -52,8 +53,14 @@ zentra_obj_t *new_zentra_array(size_t capacity);
 // Array functionality
 bool zentra_array_set(zentra_obj_t *arr, size_t index, zentra_obj_t *value);
 zentra_obj_t *zentra_array_get(zentra_obj_t *arr, size_t index);
+bool zentra_array_contains(zentra_obj_t *arr, zentra_obj_t *value);
+void zentra_array_clear(zentra_obj_t *arr);
 
 // Object Operators
 zentra_obj_t *add_zentra_object(zentra_obj_t *a, zentra_obj_t *b);
 zentra_obj_t *clone_zentra_object(zentra_obj_t *obj);
+bool compare_zentra_object(zentra_obj_t *a, zentra_obj_t *b);
+
+// helper functions
+bool zentra_object_is_numeric(zentra_obj_t *obj);
 

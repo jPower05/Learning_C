@@ -43,6 +43,12 @@ zentra_obj_t *new_zentra_vector3(zentra_obj_t *x, zentra_obj_t *y, zentra_obj_t 
     zentra_vector3_t *vec = malloc(sizeof(zentra_vector3_t));
     if (!vec) return NULL;
 
+    
+    // vector only allows numeric values
+    if((!zentra_object_is_numeric(x)) || (!zentra_object_is_numeric(y)) || (!zentra_object_is_numeric(z))){
+        return NULL;
+    }
+
     vec->x = x;
     vec->y = y;
     vec->z = z;
@@ -88,40 +94,3 @@ zentra_obj_t *new_zentra_array(size_t capacity){
     return obj;
 }
 
-void free_zentra_object(zentra_obj_t *obj) {
-    if (!obj) return;
-
-    switch (obj->type) {
-        case STRING:{
-            free(obj->data.v_string);
-            break;
-        }
-        case VECTOR3:{
-            if (obj->data.v_vector3) {
-                free_zentra_object(obj->data.v_vector3->x);
-                free_zentra_object(obj->data.v_vector3->y);
-                free_zentra_object(obj->data.v_vector3->z);
-                free(obj->data.v_vector3);
-            }
-            break;
-        }
-        case ARRAY:{
-            zentra_array_t *arr = obj->data.v_array;
-            if (arr) {
-                for (size_t i = 0; i < arr->capacity; ++i) {
-                    if (arr->elements[i]) {
-                        free_zentra_object(arr->elements[i]);  // Recursive free
-                    }
-                }
-                free(arr->elements);   // Free the array of pointers
-                free(arr);          // Free the array structure
-            }
-            break;
-        }
-        default:
-            // No dynamic memory for int/float
-            break;
-    }
-
-    free(obj);
-}

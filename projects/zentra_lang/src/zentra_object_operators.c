@@ -125,3 +125,113 @@ zentra_obj_t *clone_zentra_object(zentra_obj_t *obj){
             return NULL;
     }
 }
+
+bool compare_zentra_object(zentra_obj_t *a, zentra_obj_t *b){
+    if(a == NULL && b == NULL){
+        return true;
+    }
+    if(a == NULL || b == NULL){
+        return false;
+    }
+    switch(a->type){
+        case INTEGER:{
+            switch(b->type){
+                case INTEGER:
+                    return (a->data.v_int == b->data.v_int);
+                case FLOAT:
+                    return ((float) a->data.v_int == b->data.v_float);
+                default:
+                    return false;    
+            }
+        }
+        case FLOAT:{
+            switch(b->type){
+                case INTEGER:
+                    return (a->data.v_float == (float)b->data.v_int);
+                case FLOAT:
+                    return (a->data.v_float == b->data.v_float);
+                default:
+                    return false;    
+            }
+        }
+        case STRING:{
+            if(b->type != STRING){
+                return false;
+            }
+            return strcmp(a->data.v_string, b->data.v_string) == 0; // strcmp returns 0 if equal
+        }
+        case VECTOR3:{
+            if(b->type != VECTOR3){
+                return false;
+            }
+            return (
+                compare_zentra_object(a->data.v_vector3->x, b->data.v_vector3->x) &&
+                compare_zentra_object(a->data.v_vector3->y, b->data.v_vector3->y) &&
+                compare_zentra_object(a->data.v_vector3->z, b->data.v_vector3->z));
+        }
+        case ARRAY:{
+            if(b->type != ARRAY){
+                return false;
+            }
+            // if different sizes obviously not equal
+            if(a->data.v_array->capacity != b->data.v_array->capacity){
+                return false;
+            }
+            size_t len = a->data.v_array->capacity;
+            zentra_obj_t **a_arr = a->data.v_array->elements;
+            zentra_obj_t **b_arr = b->data.v_array->elements;
+            for(size_t i = 0; i < len; i++){
+                if(!compare_zentra_object(a_arr[i], b_arr[i])){
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+}
+
+void free_zentra_object(zentra_obj_t *obj) {
+    if (!obj) return;
+
+    switch (obj->type) {
+        case STRING:{
+            free(obj->data.v_string);
+            break;
+        }
+        case VECTOR3:{
+            if (obj->data.v_vector3) {
+                free_zentra_object(obj->data.v_vector3->x);
+                free_zentra_object(obj->data.v_vector3->y);
+                free_zentra_object(obj->data.v_vector3->z);
+                free(obj->data.v_vector3);
+            }
+            break;
+        }
+        case ARRAY:{
+            zentra_array_t *arr = obj->data.v_array;
+            if (arr) {
+                for (size_t i = 0; i < arr->capacity; ++i) {
+                    if (arr->elements[i]) {
+                        free_zentra_object(arr->elements[i]);  // Recursive free
+                    }
+                }
+                free(arr->elements);   // Free the array of pointers
+                free(arr);          // Free the array structure
+            }
+            break;
+        }
+        default:
+            // No dynamic memory for int/float
+            break;
+    }
+
+    free(obj);
+}
+
+bool zentra_object_is_numeric(zentra_obj_t *obj){
+    // only allow numerical values
+    if(obj == NULL) return false;
+    if(obj->type == INTEGER) return true;
+    if(obj->type == FLOAT) return true;
+    return false;
+}
