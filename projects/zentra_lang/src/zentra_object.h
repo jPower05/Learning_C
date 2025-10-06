@@ -35,11 +35,12 @@ typedef union ZentraObjectData{
 }zentra_obj_data_t;
 
 typedef struct ZentraObject{
+    int refcount;
     zentra_obj_type_t type;
     zentra_obj_data_t data;
 } zentra_obj_t;
 
-
+zentra_obj_t *new_zentra_object();
 
 void free_zentra_object(zentra_obj_t *obj);
 zentra_obj_t *new_zentra_integer(int value);
@@ -63,4 +64,12 @@ bool compare_zentra_object(zentra_obj_t *a, zentra_obj_t *b);
 
 // helper functions
 bool zentra_object_is_numeric(zentra_obj_t *obj);
+
+// reference counting
+void refcount_inc(zentra_obj_t *obj);
+void refcount_dec(zentra_obj_t *obj);
+void refcount_free(zentra_obj_t *obj);
+
+void test_function(zentra_obj_t *obj);
+
 

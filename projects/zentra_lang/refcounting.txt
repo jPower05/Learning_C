@@ -1,0 +1,106 @@
+# Zentra Language Reference Counting Rules
+
+## 1. Constructor Functions (new_zentra_*)
+
+### Simple Types (INTEGER, FLOAT, STRING)
+- new_zentra_integer(), new_zentra_float(), new_zentra_string():
+  * Creates object with refcount = 1
+  * Caller owns the reference
+  * Caller must call refcount_dec() when done
+
+### Vector3
+- new_zentra_vector3(x, y, z):
+  * Creates vector3 with refcount = 1
+  * Increments refcount of x, y, z components (they are now owned by the vector)
+  * Caller owns the vector reference
+  * Caller must call refcount_dec() on vector when done
+  * When vector is freed, it decrements x, y, z
+
+### Array
+- new_zentra_array(capacity):
+  * Creates array with refcount = 1
+  * Caller owns the reference
+  * Caller must call refcount_dec() when done
+
+## 2. Array Operations
+
+### zentra_array_set(array, index, value)
+  * Increments refcount of value (array now owns a reference)
+  * If replacing existing value, decrements old value's refcount
+  * Caller keeps their reference to value
+
+### zentra_array_get(array, index)
+  * Returns direct pointer to stored object
+  * Does NOT increment refcount
+  * Caller should not decrement the returned reference
+
+## 3. Object Operations
+
+### add_zentra_object(a, b)
+  * Creates new object with refcount = 1
+  * For VECTOR3: Creates new x,y,z components and vector
+  * Caller owns returned object reference
+  * Caller must call refcount_dec() when done with result
+
+### clone_zentra_object(obj)
+  * Creates deep copy with refcount = 1
+  * For compound objects (VECTOR3, ARRAY), recursively clones components
+  * Caller owns returned clone reference
+  * Caller must call refcount_dec() when done with clone
+
+## 4. Reference Counting Functions
+
+### refcount_inc(obj)
+  * Increments refcount
+  * Use when storing object reference long-term
+  * Must be matched with refcount_dec()
+
+### refcount_dec(obj)
+  * Decrements refcount
+  * When refcount reaches 0:
+    - For VECTOR3: decrements x,y,z components
+    - For ARRAY: decrements all stored elements
+    - Frees the object
+
+## Key Principles
+1. Every new_* or clone returns object with refcount = 1
+2. When storing object reference, increment its refcount
+3. When done with reference, decrement its refcount
+4. Parent objects (VECTOR3, ARRAY) own their components/elements
+5. Getting a value (array_get) doesn't change refcounts
+6. Setting a value (array_set) transfers ownership to container
+
+## Common Mistakes to Avoid
+1. Forgetting to decrement temporary objects (like in VECTOR3 add case)
+2. Double-freeing by decrementing already freed objects
+3. Memory leaks by not decrementing objects when done
+4. Use-after-free by keeping reference after final decrement
+5. Not incrementing when storing long-term reference
+
+## Example Reference Counting Scenarios
+
+1. Creating and using a temporary object:
+   ```c
+   zentra_obj_t *tmp = new_zentra_integer(42);  // refcount = 1
+   // use tmp...
+   refcount_dec(tmp);  // refcount = 0, object freed
+   ```
+
+2. Storing object in array:
+   ```c
+   zentra_obj_t *val = new_zentra_integer(42);  // refcount = 1
+   zentra_array_set(array, 0, val);  // array increments refcount to 2
+   refcount_dec(val);  // back to refcount = 1, array owns only reference
+   ```
+
+3. Vector3 component management:
+   ```c
+   zentra_obj_t *x = new_zentra_integer(1);  // refcount = 1
+   zentra_obj_t *y = new_zentra_integer(2);  // refcount = 1
+   zentra_obj_t *z = new_zentra_integer(3);  // refcount = 1
+   zentra_obj_t *vec = new_zentra_vector3(x, y, z);  // increments x,y,z to 2
+   refcount_dec(x);  // back to 1, vector owns reference
+   refcount_dec(y);
+   refcount_dec(z);
+   refcount_dec(vec);  // frees vector and decrements x,y,z to 0
+   ```

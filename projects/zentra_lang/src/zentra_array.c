@@ -15,10 +15,14 @@ bool zentra_array_set(zentra_obj_t *arr, size_t index, zentra_obj_t *value){
     }
 
     // free previous value if it exists
-    if(array->elements[index] != NULL){
-        free_zentra_object(array->elements[index]);
+    zentra_obj_t *prev = array->elements[index];
+    if(prev){
+        refcount_dec(prev);
     }
     array->elements[index] = value;
+    if(value){
+        refcount_inc(value);
+    }
     return true;
 }
 
@@ -69,7 +73,7 @@ void zentra_array_clear(zentra_obj_t *arr){
     for(size_t i = 0; i < len; i++){
         zentra_obj_t *element = zentra_array_get(arr, i);
         if(element){
-            free_zentra_object(element);
+            refcount_dec(element);
             zentra_array_set(arr,i,NULL);
         }
     }

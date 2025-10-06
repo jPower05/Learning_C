@@ -14,7 +14,9 @@ void test_array_set_get(void) {
 
     // Valid set/get
     CU_ASSERT_TRUE(zentra_array_set(arr, 0, val1));
+    refcount_dec(val1);
     CU_ASSERT_TRUE(zentra_array_set(arr, 1, val2));
+    refcount_dec(val2);
 
     zentra_obj_t *res1 = zentra_array_get(arr, 0);
     zentra_obj_t *res2 = zentra_array_get(arr, 1);
@@ -29,8 +31,7 @@ void test_array_set_get(void) {
     CU_ASSERT_PTR_NULL(zentra_array_get(arr, 10));
 
     // cleanup
-    free_zentra_object(arr);
-    // NOTE: don't free val1/val2 separately if array takes ownership
+    refcount_dec(arr);
 }
 
 // Test: ensure array initialized with NULLs
@@ -39,7 +40,7 @@ void test_array_default_values(void) {
     for (size_t i = 0; i < 3; i++) {
         CU_ASSERT_PTR_NULL(zentra_array_get(arr, i));
     }
-    free_zentra_object(arr);
+    refcount_dec(arr);
 }
 
 // Test: overwrite element
@@ -49,13 +50,15 @@ void test_array_overwrite(void) {
     zentra_obj_t *val2 = new_zentra_integer(21);
 
     CU_ASSERT_TRUE(zentra_array_set(arr, 0, val1));
+    refcount_dec(val1);
     CU_ASSERT_TRUE(zentra_array_set(arr, 0, val2)); // overwrite
+    refcount_dec(val2);
 
     zentra_obj_t *res = zentra_array_get(arr, 0);
     CU_ASSERT_PTR_NOT_NULL(res);
     CU_ASSERT_EQUAL(res->data.v_int, 21);
 
-    free_zentra_object(arr);
+    refcount_dec(arr);
 }
 
 // Registration function called from test_runner.c

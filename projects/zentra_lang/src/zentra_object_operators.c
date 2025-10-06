@@ -44,11 +44,32 @@ zentra_obj_t *add_zentra_object(zentra_obj_t *a, zentra_obj_t *b){
             if(b->type != VECTOR3){
                 return NULL;
             }
-            return new_zentra_vector3(
-                add_zentra_object(a->data.v_vector3->x, b->data.v_vector3->x),
-                add_zentra_object(a->data.v_vector3->y, b->data.v_vector3->y),
-                add_zentra_object(a->data.v_vector3->z, b->data.v_vector3->z)
-            );
+            // Create temporary components
+            zentra_obj_t *x = add_zentra_object(a->data.v_vector3->x, b->data.v_vector3->x);
+            if (!x) return NULL;
+            
+            zentra_obj_t *y = add_zentra_object(a->data.v_vector3->y, b->data.v_vector3->y);
+            if (!y) {
+                refcount_dec(x);  // Release x on failure
+                return NULL;
+            }
+            
+            zentra_obj_t *z = add_zentra_object(a->data.v_vector3->z, b->data.v_vector3->z);
+            if (!z) {
+                refcount_dec(x);  // Release x, y on failure
+                refcount_dec(y);
+                return NULL;
+            }
+            
+            // Create vector with our temporary components
+            zentra_obj_t *result = new_zentra_vector3(x, y, z);
+            
+            // new_zentra_vector3 increments refcount of x,y,z, so release our temporary refs
+            refcount_dec(x);
+            refcount_dec(y);
+            refcount_dec(z);
+            
+            return result;
         }
         case ARRAY: {
             if(b->type != ARRAY){
@@ -56,21 +77,39 @@ zentra_obj_t *add_zentra_object(zentra_obj_t *a, zentra_obj_t *b){
             }
             size_t arraylen = a->data.v_array->capacity + b->data.v_array->capacity;
             zentra_obj_t *obj = new_zentra_array(arraylen);
-
+            if (!obj) {
+                return NULL;
+            }
+            // Track which elements were set for cleanup on failure
+            size_t set_count = 0;
             for(size_t i = 0; i < a->data.v_array->capacity; i++){
                 zentra_obj_t *element = zentra_array_get(a, i);
                 if(element){
-                    zentra_array_set(obj, i, clone_zentra_object(element));
+                    zentra_obj_t *cloned = clone_zentra_object(element);
+                    if (!cloned) {
+                        // Cleanup all previously set elements
+                        for (size_t j = 0; j < set_count; j++) refcount_dec(obj->data.v_array->elements[j]);
+                        refcount_dec(obj);
+                        return NULL;
+                    }
+                    zentra_array_set(obj, set_count, cloned);
+                    refcount_dec(cloned);
+                    set_count++;
                 }
-                
             }
             for(size_t i = 0; i < b->data.v_array->capacity; i++){
-                // place after the contents of array a
                 zentra_obj_t *element = zentra_array_get(b, i);
                 if(element){
-                    zentra_array_set(obj, i + a->data.v_array->capacity, clone_zentra_object(element));
+                    zentra_obj_t *cloned = clone_zentra_object(element);
+                    if (!cloned) {
+                        for (size_t j = 0; j < set_count; j++) refcount_dec(obj->data.v_array->elements[j]);
+                        refcount_dec(obj);
+                        return NULL;
+                    }
+                    zentra_array_set(obj, set_count, cloned);
+                    refcount_dec(cloned);
+                    set_count++;
                 }
-                
             }
             return obj;
         }
@@ -98,12 +137,17 @@ zentra_obj_t *clone_zentra_object(zentra_obj_t *obj){
             zentra_obj_t *y = clone_zentra_object(obj->data.v_vector3->y);
             zentra_obj_t *z = clone_zentra_object(obj->data.v_vector3->z);
             if(!x || !y || !z) { 
-                free_zentra_object(x);
-                free_zentra_object(y);
-                free_zentra_object(z);
+                refcount_dec(x);
+                refcount_dec(y);
+                refcount_dec(z);
                 return NULL;
             }
-            return new_zentra_vector3(x, y, z);
+            zentra_obj_t *vec = new_zentra_vector3(x, y, z);
+            // transfer ownership to vector
+            refcount_dec(x);
+            refcount_dec(y);
+            refcount_dec(z);
+            return vec;
         }
         case ARRAY:{
             // create a new array
@@ -115,8 +159,10 @@ zentra_obj_t *clone_zentra_object(zentra_obj_t *obj){
                 // store each element in the original array
                 zentra_obj_t *element = zentra_array_get(obj, i);
                 if(element){
+                    zentra_obj_t *cloned = clone_zentra_object(element);
                     // add to the new copy array, cloning each element beforehand
-                    zentra_array_set(copy_obj, i, clone_zentra_object(element));
+                    zentra_array_set(copy_obj, i, cloned);
+                    refcount_dec(cloned);   // transfer ownership
                 }
             }
             return copy_obj;
@@ -141,7 +187,8 @@ bool compare_zentra_object(zentra_obj_t *a, zentra_obj_t *b){
                 case FLOAT:
                     return ((float) a->data.v_int == b->data.v_float);
                 default:
-                    return false;    
+                    return false; 
+   
             }
         }
         case FLOAT:{
@@ -190,43 +237,6 @@ bool compare_zentra_object(zentra_obj_t *a, zentra_obj_t *b){
     }
 }
 
-void free_zentra_object(zentra_obj_t *obj) {
-    if (!obj) return;
-
-    switch (obj->type) {
-        case STRING:{
-            free(obj->data.v_string);
-            break;
-        }
-        case VECTOR3:{
-            if (obj->data.v_vector3) {
-                free_zentra_object(obj->data.v_vector3->x);
-                free_zentra_object(obj->data.v_vector3->y);
-                free_zentra_object(obj->data.v_vector3->z);
-                free(obj->data.v_vector3);
-            }
-            break;
-        }
-        case ARRAY:{
-            zentra_array_t *arr = obj->data.v_array;
-            if (arr) {
-                for (size_t i = 0; i < arr->capacity; ++i) {
-                    if (arr->elements[i]) {
-                        free_zentra_object(arr->elements[i]);  // Recursive free
-                    }
-                }
-                free(arr->elements);   // Free the array of pointers
-                free(arr);          // Free the array structure
-            }
-            break;
-        }
-        default:
-            // No dynamic memory for int/float
-            break;
-    }
-
-    free(obj);
-}
 
 bool zentra_object_is_numeric(zentra_obj_t *obj){
     // only allow numerical values

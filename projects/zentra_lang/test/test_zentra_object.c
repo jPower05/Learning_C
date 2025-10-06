@@ -8,7 +8,7 @@ void test_new_zentra_integer(void) {
     CU_ASSERT_PTR_NOT_NULL(obj);
     CU_ASSERT_EQUAL(obj->type, INTEGER);
     CU_ASSERT_EQUAL(obj->data.v_int, 42);
-    free(obj);
+    refcount_dec(obj);
 }
 
 void test_new_zentra_float(void) {
@@ -16,7 +16,7 @@ void test_new_zentra_float(void) {
     CU_ASSERT_PTR_NOT_NULL(obj);
     CU_ASSERT_EQUAL(obj->type, FLOAT);
     CU_ASSERT_DOUBLE_EQUAL(obj->data.v_float, 3.14f, 0.0001);
-    free(obj);
+    refcount_dec(obj);
 }
 
 // Test for string creation
@@ -29,8 +29,7 @@ void test_new_zentra_string(void) {
     CU_ASSERT_PTR_NOT_NULL(obj->data.v_string);
     CU_ASSERT_STRING_EQUAL(obj->data.v_string, input);
 
-    free(obj->data.v_string);
-    free(obj);
+    refcount_dec(obj);
 }
 
 #include <CUnit/CUnit.h>
@@ -68,8 +67,13 @@ void test_new_zentra_vector3(void) {
     CU_ASSERT_DOUBLE_EQUAL(vec->y->data.v_float, 2.0f, 0.0001);
     CU_ASSERT_DOUBLE_EQUAL(vec->z->data.v_float, 3.0f, 0.0001);
 
+    // Release local references after insertion into vector
+    refcount_dec(x);
+    refcount_dec(y);
+    refcount_dec(z);
+
     // Clean up memory
-    free_zentra_object(vec_obj);  // Recursively frees all components
+    refcount_dec(vec_obj);  // Recursively frees all components
 }
 
 void test_new_zentra_array(){
@@ -87,9 +91,13 @@ void test_new_zentra_array(){
         CU_ASSERT_PTR_NULL(arr->elements[i]);
     }
 
-    // Manually insert values
-    arr->elements[0] = new_zentra_integer(10);
-    arr->elements[1] = new_zentra_float(2.5f);
+    // Insert values using zentra_array_set for correct refcounting
+        zentra_obj_t *val0 = new_zentra_integer(10);
+        zentra_obj_t *val1 = new_zentra_float(2.5f);
+        CU_ASSERT_TRUE(zentra_array_set(arr_obj, 0, val0));
+        refcount_dec(val0);
+        CU_ASSERT_TRUE(zentra_array_set(arr_obj, 1, val1));
+        refcount_dec(val1);
 
     // Verify inserted values
     CU_ASSERT_EQUAL(arr->elements[0]->type, INTEGER);
@@ -99,7 +107,7 @@ void test_new_zentra_array(){
     CU_ASSERT_DOUBLE_EQUAL(arr->elements[1]->data.v_float, 2.5f, 0.0001);
 
     // Free all memory safely
-    free_zentra_object(arr_obj);
+    refcount_dec(arr_obj);
 }
 
 

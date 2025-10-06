@@ -1,0 +1,12 @@
+# Suppress known CUnit/test runner leaks for Valgrind
+# Example: suppress all leaks from libcunit.so and test_runner
+# You may need to adjust the object/function names for your system
+{
+   Memcheck:Leak
+   fun:CU_*  # CUnit functions
+   obj:/usr/lib/libcunit.so*
+}
+{
+   Memcheck:Leak
+   obj:*/test_runner
+}

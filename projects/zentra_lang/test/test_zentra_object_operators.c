@@ -11,9 +11,9 @@ void test_add_integers(void) {
     CU_ASSERT_TRUE(result->type == INTEGER);
     CU_ASSERT_TRUE(result->data.v_int == 8);
 
-    free_zentra_object(a);
-    free_zentra_object(b);
-    free_zentra_object(result);
+    refcount_dec(a);
+    refcount_dec(b);
+    refcount_dec(result);
 }
 
 void test_add_integer_float(void) {
@@ -25,9 +25,9 @@ void test_add_integer_float(void) {
     CU_ASSERT_TRUE(result->type == FLOAT);
     CU_ASSERT_DOUBLE_EQUAL(result->data.v_float, 6.5, 0.0001);
 
-    free_zentra_object(a);
-    free_zentra_object(b);
-    free_zentra_object(result);
+    refcount_dec(a);
+    refcount_dec(b);
+    refcount_dec(result);
 }
 
 void test_add_strings(void) {
@@ -39,9 +39,9 @@ void test_add_strings(void) {
     CU_ASSERT_TRUE(result->type == STRING);
     CU_ASSERT_STRING_EQUAL(result->data.v_string, "Hello World");
 
-    free_zentra_object(a);
-    free_zentra_object(b);
-    free_zentra_object(result);
+    refcount_dec(a);
+    refcount_dec(b);
+    refcount_dec(result);
 }
 
 void test_add_vectors(void) {
@@ -49,11 +49,13 @@ void test_add_vectors(void) {
     zentra_obj_t *y1 = new_zentra_integer(2);
     zentra_obj_t *z1 = new_zentra_integer(3);
     zentra_obj_t *v1 = new_zentra_vector3(x1, y1, z1);
+    refcount_dec(x1); refcount_dec(y1); refcount_dec(z1);
 
     zentra_obj_t *x2 = new_zentra_integer(4);
     zentra_obj_t *y2 = new_zentra_integer(5);
     zentra_obj_t *z2 = new_zentra_integer(6);
     zentra_obj_t *v2 = new_zentra_vector3(x2, y2, z2);
+    refcount_dec(x2); refcount_dec(y2); refcount_dec(z2);
 
     zentra_obj_t *result = add_zentra_object(v1, v2);
     CU_ASSERT_PTR_NOT_NULL(result);
@@ -62,19 +64,28 @@ void test_add_vectors(void) {
     CU_ASSERT_TRUE(result->data.v_vector3->y->data.v_int == 7);
     CU_ASSERT_TRUE(result->data.v_vector3->z->data.v_int == 9);
 
-    free_zentra_object(v1);
-    free_zentra_object(v2);
-    free_zentra_object(result);
+    refcount_dec(v1);
+    refcount_dec(v2);
+    refcount_dec(result);
 }
 
 void test_add_arrays(void) {
+
     zentra_obj_t *a = new_zentra_array(2);
-    zentra_array_set(a, 0, new_zentra_integer(1));
-    zentra_array_set(a, 1, new_zentra_integer(2));
+    zentra_obj_t *a0 = new_zentra_integer(1);
+    zentra_obj_t *a1 = new_zentra_integer(2);
+    zentra_array_set(a, 0, a0);
+    refcount_dec(a0);
+    zentra_array_set(a, 1, a1);
+    refcount_dec(a1);
 
     zentra_obj_t *b = new_zentra_array(2);
-    zentra_array_set(b, 0, new_zentra_integer(3));
-    zentra_array_set(b, 1, new_zentra_integer(4));
+    zentra_obj_t *b0 = new_zentra_integer(3);
+    zentra_obj_t *b1 = new_zentra_integer(4);
+    zentra_array_set(b, 0, b0);
+    refcount_dec(b0);
+    zentra_array_set(b, 1, b1);
+    refcount_dec(b1);
 
     zentra_obj_t *result = add_zentra_object(a, b);
     CU_ASSERT_PTR_NOT_NULL(result);
@@ -85,16 +96,16 @@ void test_add_arrays(void) {
     CU_ASSERT_TRUE(result->data.v_array->elements[2]->data.v_int == 3);
     CU_ASSERT_TRUE(result->data.v_array->elements[3]->data.v_int == 4);
 
-    free_zentra_object(a);
-    free_zentra_object(b);
-    free_zentra_object(result);
+    refcount_dec(a);
+    refcount_dec(b);
+    refcount_dec(result);
 }
 
 void test_add_null(void) {
     zentra_obj_t *a = new_zentra_integer(1);
     zentra_obj_t *result = add_zentra_object(a, NULL);
     CU_ASSERT_PTR_NULL(result);
-    free_zentra_object(a);
+    refcount_dec(a);
 }
 
 void test_clone_integer(void) {
@@ -104,8 +115,8 @@ void test_clone_integer(void) {
     CU_ASSERT_PTR_NOT_NULL(copy);
     CU_ASSERT_TRUE(compare_zentra_object(orig, copy));
 
-    free_zentra_object(orig);
-    free_zentra_object(copy);
+    refcount_dec(orig);
+    refcount_dec(copy);
 }
 
 void test_clone_float(void) {
@@ -115,8 +126,8 @@ void test_clone_float(void) {
     CU_ASSERT_PTR_NOT_NULL(copy);
     CU_ASSERT_TRUE(compare_zentra_object(orig, copy));
 
-    free_zentra_object(orig);
-    free_zentra_object(copy);
+    refcount_dec(orig);
+    refcount_dec(copy);
 }
 
 void test_clone_string(void) {
@@ -127,8 +138,8 @@ void test_clone_string(void) {
     CU_ASSERT_TRUE(compare_zentra_object(orig, copy));
     CU_ASSERT_PTR_NOT_EQUAL(orig->data.v_string, copy->data.v_string); // deep copy
 
-    free_zentra_object(orig);
-    free_zentra_object(copy);
+    refcount_dec(orig);
+    refcount_dec(copy);
 }
 
 void test_clone_vector3(void) {
@@ -136,20 +147,25 @@ void test_clone_vector3(void) {
     zentra_obj_t *y = new_zentra_integer(2);
     zentra_obj_t *z = new_zentra_integer(3);
     zentra_obj_t *orig = new_zentra_vector3(x, y, z);
+    refcount_dec(x); refcount_dec(y); refcount_dec(z);
     zentra_obj_t *copy = clone_zentra_object(orig);
 
     CU_ASSERT_PTR_NOT_NULL(copy);
     CU_ASSERT_TRUE(compare_zentra_object(orig, copy));
     CU_ASSERT_PTR_NOT_EQUAL(orig->data.v_vector3, copy->data.v_vector3);
 
-    free_zentra_object(orig);
-    free_zentra_object(copy);
+    refcount_dec(orig);
+    refcount_dec(copy);
 }
 
 void test_clone_array(void) {
     zentra_obj_t *arr = new_zentra_array(2);
-    zentra_array_set(arr, 0, new_zentra_integer(10));
-    zentra_array_set(arr, 1, new_zentra_integer(20));
+    zentra_obj_t *v0 = new_zentra_integer(10);
+    zentra_obj_t *v1 = new_zentra_integer(20);
+    zentra_array_set(arr, 0, v0);
+    refcount_dec(v0);
+    zentra_array_set(arr, 1, v1);
+    refcount_dec(v1);
 
     zentra_obj_t *copy = clone_zentra_object(arr);
 
@@ -159,8 +175,8 @@ void test_clone_array(void) {
     CU_ASSERT_PTR_NOT_EQUAL(arr->data.v_array->elements[0], copy->data.v_array->elements[0]);
     CU_ASSERT_PTR_NOT_EQUAL(arr->data.v_array->elements[1], copy->data.v_array->elements[1]);
 
-    free_zentra_object(arr);
-    free_zentra_object(copy);
+    refcount_dec(arr);
+    refcount_dec(copy);
 }
 
 void test_clone_null(void) {
@@ -176,9 +192,9 @@ void test_compare_integers(void) {
     CU_ASSERT_TRUE(compare_zentra_object(a, b));
     CU_ASSERT_FALSE(compare_zentra_object(a, c));
 
-    free_zentra_object(a);
-    free_zentra_object(b);
-    free_zentra_object(c);
+    refcount_dec(a);
+    refcount_dec(b);
+    refcount_dec(c);
 }
 
 void test_compare_integer_float(void) {
@@ -189,9 +205,9 @@ void test_compare_integer_float(void) {
     CU_ASSERT_TRUE(compare_zentra_object(a, b));
     CU_ASSERT_FALSE(compare_zentra_object(a, c));
 
-    free_zentra_object(a);
-    free_zentra_object(b);
-    free_zentra_object(c);
+    refcount_dec(a);
+    refcount_dec(b);
+    refcount_dec(c);
 }
 
 void test_compare_strings(void) {
@@ -202,49 +218,69 @@ void test_compare_strings(void) {
     CU_ASSERT_TRUE(compare_zentra_object(a, b));
     CU_ASSERT_FALSE(compare_zentra_object(a, c));
 
-    free_zentra_object(a);
-    free_zentra_object(b);
-    free_zentra_object(c);
+    refcount_dec(a);
+    refcount_dec(b);
+    refcount_dec(c);
 }
 
 void test_compare_vector3(void) {
-    zentra_obj_t *v1 = new_zentra_vector3(
-        new_zentra_integer(1), new_zentra_integer(2), new_zentra_integer(3)
-    );
-    zentra_obj_t *v2 = new_zentra_vector3(
-        new_zentra_integer(1), new_zentra_integer(2), new_zentra_integer(3)
-    );
-    zentra_obj_t *v3 = new_zentra_vector3(
-        new_zentra_integer(1), new_zentra_integer(2), new_zentra_integer(4)
-    );
+    zentra_obj_t *x1 = new_zentra_integer(1);
+    zentra_obj_t *y1 = new_zentra_integer(2);
+    zentra_obj_t *z1 = new_zentra_integer(3);
+    zentra_obj_t *v1 = new_zentra_vector3(x1, y1, z1);
+    refcount_dec(x1); refcount_dec(y1); refcount_dec(z1);
+
+    zentra_obj_t *x2 = new_zentra_integer(1);
+    zentra_obj_t *y2 = new_zentra_integer(2);
+    zentra_obj_t *z2 = new_zentra_integer(3);
+    zentra_obj_t *v2 = new_zentra_vector3(x2, y2, z2);
+    refcount_dec(x2); refcount_dec(y2); refcount_dec(z2);
+
+    zentra_obj_t *x3 = new_zentra_integer(1);
+    zentra_obj_t *y3 = new_zentra_integer(2);
+    zentra_obj_t *z3 = new_zentra_integer(4);
+    zentra_obj_t *v3 = new_zentra_vector3(x3, y3, z3);
+    refcount_dec(x3); refcount_dec(y3); refcount_dec(z3);
 
     CU_ASSERT_TRUE(compare_zentra_object(v1, v2));
     CU_ASSERT_FALSE(compare_zentra_object(v1, v3));
 
-    free_zentra_object(v1);
-    free_zentra_object(v2);
-    free_zentra_object(v3);
+    refcount_dec(v1);
+    refcount_dec(v2);
+    refcount_dec(v3);
 }
 
 void test_compare_arrays(void) {
     zentra_obj_t *a = new_zentra_array(2);
-    zentra_array_set(a, 0, new_zentra_integer(10));
-    zentra_array_set(a, 1, new_zentra_integer(20));
+    zentra_obj_t *a0 = new_zentra_integer(10);
+    zentra_obj_t *a1 = new_zentra_integer(20);
+    zentra_array_set(a, 0, a0);
+    refcount_dec(a0);
+    zentra_array_set(a, 1, a1);
+    refcount_dec(a1);
 
     zentra_obj_t *b = new_zentra_array(2);
-    zentra_array_set(b, 0, new_zentra_integer(10));
-    zentra_array_set(b, 1, new_zentra_integer(20));
+    zentra_obj_t *b0 = new_zentra_integer(10);
+    zentra_obj_t *b1 = new_zentra_integer(20);
+    zentra_array_set(b, 0, b0);
+    refcount_dec(b0);
+    zentra_array_set(b, 1, b1);
+    refcount_dec(b1);
 
     zentra_obj_t *c = new_zentra_array(2);
-    zentra_array_set(c, 0, new_zentra_integer(10));
-    zentra_array_set(c, 1, new_zentra_integer(21));
+    zentra_obj_t *c0 = new_zentra_integer(10);
+    zentra_obj_t *c1 = new_zentra_integer(21);
+    zentra_array_set(c, 0, c0);
+    refcount_dec(c0);
+    zentra_array_set(c, 1, c1);
+    refcount_dec(c1);
 
     CU_ASSERT_TRUE(compare_zentra_object(a, b));
     CU_ASSERT_FALSE(compare_zentra_object(a, c));
 
-    free_zentra_object(a);
-    free_zentra_object(b);
-    free_zentra_object(c);
+    refcount_dec(a);
+    refcount_dec(b);
+    refcount_dec(c);
 }
 
 void test_compare_null(void) {
@@ -256,7 +292,7 @@ void test_compare_null(void) {
     CU_ASSERT_FALSE(compare_zentra_object(a, c));
     CU_ASSERT_FALSE(compare_zentra_object(c, b));
 
-    free_zentra_object(c);
+    refcount_dec(c);
 }
 
 void test_compare_different_types(void) {
@@ -268,24 +304,24 @@ void test_compare_different_types(void) {
     CU_ASSERT_FALSE(compare_zentra_object(i, s)); // different type
     CU_ASSERT_FALSE(compare_zentra_object(f, s));
 
-    free_zentra_object(i);
-    free_zentra_object(f);
-    free_zentra_object(s);
+    refcount_dec(i);
+    refcount_dec(f);
+    refcount_dec(s);
 }
 
 void test_free_integer(void) {
     zentra_obj_t *obj = new_zentra_integer(42);
-    free_zentra_object(obj);  // Should not crash
+    refcount_dec(obj);  // Should not crash
 }
 
 void test_free_float(void) {
     zentra_obj_t *obj = new_zentra_float(3.14f);
-    free_zentra_object(obj);  // Should not crash
+    refcount_dec(obj);  // Should not crash
 }
 
 void test_free_string(void) {
     zentra_obj_t *obj = new_zentra_string("Hello");
-    free_zentra_object(obj);  // Should free v_string and obj
+    refcount_dec(obj);  // Should free v_string and obj
 }
 
 void test_free_vector3(void) {
@@ -293,35 +329,44 @@ void test_free_vector3(void) {
     zentra_obj_t *y = new_zentra_integer(2);
     zentra_obj_t *z = new_zentra_integer(3);
     zentra_obj_t *vec = new_zentra_vector3(x, y, z);
-    free_zentra_object(vec);  // Should recursively free x, y, z and vec
+    refcount_dec(x);
+    refcount_dec(y);
+    refcount_dec(z);
+    refcount_dec(vec);  // Should recursively free x, y, z and vec
 }
 
 void test_free_array(void) {
     zentra_obj_t *arr = new_zentra_array(2);
-    zentra_array_set(arr, 0, new_zentra_integer(10));
-    zentra_array_set(arr, 1, new_zentra_string("World"));
-    free_zentra_object(arr);  // Should recursively free elements and array
+    zentra_obj_t *i = new_zentra_integer(10);
+    zentra_obj_t *str = new_zentra_string("World");
+    zentra_array_set(arr, 0, i);
+    refcount_dec(i);
+    zentra_array_set(arr, 1, str);
+    refcount_dec(str);
+    refcount_dec(arr);  // Should recursively free elements and array
 }
 
 void test_free_null(void) {
     zentra_obj_t *obj = NULL;
-    free_zentra_object(obj);  // Should handle NULL safely, no crash
+    refcount_dec(obj);  // Should handle NULL safely, no crash
 }
 
 void test_free_nested_structures(void) {
     // Array containing a vector3 and string
-    zentra_obj_t *vec = new_zentra_vector3(
-        new_zentra_integer(1),
-        new_zentra_integer(2),
-        new_zentra_integer(3)
-    );
+    zentra_obj_t *x = new_zentra_integer(1);
+    zentra_obj_t *y = new_zentra_integer(2);
+    zentra_obj_t *z = new_zentra_integer(3);
+    zentra_obj_t *vec = new_zentra_vector3(x, y, z);
+    refcount_dec(x);
+    refcount_dec(y);
+    refcount_dec(z);
     zentra_obj_t *str = new_zentra_string("Nested");
-    
     zentra_obj_t *arr = new_zentra_array(2);
     zentra_array_set(arr, 0, vec);
+    refcount_dec(vec);
     zentra_array_set(arr, 1, str);
-
-    free_zentra_object(arr);  // Should free everything recursively
+    refcount_dec(str);
+    refcount_dec(arr);  // Should free everything recursively
 }
 
 
