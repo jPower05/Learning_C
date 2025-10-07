@@ -1,54 +1,77 @@
 #include <CUnit/CUnit.h>
-#include "../src/zentra_object.h"
+#include "../include/zentra_object.h"
+#include "../include/zentra_arena_allocator.h"
 #include <stdlib.h>
 
 // Your actual test case function
 void test_new_zentra_integer(void) {
-    zentra_obj_t* obj = new_zentra_integer(42);
+    // create a temporary arena for allocation
+    zentra_arena_t *arena = zentra_arena_create(1024);
+    CU_ASSERT_PTR_NOT_NULL(arena);
+
+    // allocate the integer object in the arena 
+    zentra_obj_t* obj = new_zentra_integer(arena, 42);
     CU_ASSERT_PTR_NOT_NULL(obj);
     CU_ASSERT_EQUAL(obj->type, INTEGER);
     CU_ASSERT_EQUAL(obj->data.v_int, 42);
-    free(obj);
+    
+    // destroy the arena
+    zentra_arena_destroy(arena);
 }
 
 void test_new_zentra_float(void) {
-    zentra_obj_t* obj = new_zentra_float(3.14f);
+    // create a temporary arena for allocation
+    zentra_arena_t *arena = zentra_arena_create(1024);
+    CU_ASSERT_PTR_NOT_NULL(arena);
+
+    // allocate the float object in the arena
+    zentra_obj_t* obj = new_zentra_float(arena, 3.14f);
     CU_ASSERT_PTR_NOT_NULL(obj);
     CU_ASSERT_EQUAL(obj->type, FLOAT);
     CU_ASSERT_DOUBLE_EQUAL(obj->data.v_float, 3.14f, 0.0001);
-    free(obj);
+    
+    // destroy the arena
+    zentra_arena_destroy(arena);
 }
 
 // Test for string creation
 void test_new_zentra_string(void) {
+    // create a temporary arena for allocation
+    zentra_arena_t *arena = zentra_arena_create(1024);
+    CU_ASSERT_PTR_NOT_NULL(arena);  
+
     const char *input = "hello world";
-    zentra_obj_t *obj = new_zentra_string((char *)input);
+
+    // allocate the string object in the arena
+    zentra_obj_t *obj = new_zentra_string(arena, (char *)input);
 
     CU_ASSERT_PTR_NOT_NULL(obj);
     CU_ASSERT_EQUAL(obj->type, STRING);
     CU_ASSERT_PTR_NOT_NULL(obj->data.v_string);
     CU_ASSERT_STRING_EQUAL(obj->data.v_string, input);
 
-    free(obj->data.v_string);
-    free(obj);
+    // destroy the arena
+    zentra_arena_destroy(arena);
 }
 
-#include <CUnit/CUnit.h>
-#include "zentra_object.h"
 
 void test_new_zentra_vector3(void) {
+    // create a temporary arena for allocation
+    zentra_arena_t *arena = zentra_arena_create(1024);
+    CU_ASSERT_PTR_NOT_NULL(arena);  
+
     // Create individual float components
-    zentra_obj_t *x = new_zentra_float(1.0f);
-    zentra_obj_t *y = new_zentra_float(2.0f);
-    zentra_obj_t *z = new_zentra_float(3.0f);
+    zentra_obj_t *x = new_zentra_float(arena, 1.0f);
+    zentra_obj_t *y = new_zentra_float(arena, 2.0f);
+    zentra_obj_t *z = new_zentra_float(arena, 3.0f);
 
     // Sanity check for component creation
     CU_ASSERT_PTR_NOT_NULL(x);
     CU_ASSERT_PTR_NOT_NULL(y);
     CU_ASSERT_PTR_NOT_NULL(z);
 
-    // Create the vector object
-    zentra_obj_t *vec_obj = new_zentra_vector3(x, y, z);
+    // Create the vector object in the arena    
+    zentra_obj_t *vec_obj = new_zentra_vector3(arena, x, y, z);
     CU_ASSERT_PTR_NOT_NULL(vec_obj);
     CU_ASSERT_EQUAL(vec_obj->type, VECTOR3);
     CU_ASSERT_PTR_NOT_NULL(vec_obj->data.v_vector3);
@@ -68,13 +91,18 @@ void test_new_zentra_vector3(void) {
     CU_ASSERT_DOUBLE_EQUAL(vec->y->data.v_float, 2.0f, 0.0001);
     CU_ASSERT_DOUBLE_EQUAL(vec->z->data.v_float, 3.0f, 0.0001);
 
-    // Clean up memory
-    free_zentra_object(vec_obj);  // Recursively frees all components
+    // destroy the arena, no need to free individual objects
+    zentra_arena_destroy(arena);
 }
 
 void test_new_zentra_array(){
+
+    // create a temporary arena for allocation
+    zentra_arena_t *arena = zentra_arena_create(1024);
+    CU_ASSERT_PTR_NOT_NULL(arena);  
+
     // Create a new array of size 3
-    zentra_obj_t *arr_obj = new_zentra_array(3);
+    zentra_obj_t *arr_obj = new_zentra_array(arena, 3);
     CU_ASSERT_PTR_NOT_NULL(arr_obj);
     CU_ASSERT_EQUAL(arr_obj->type, ARRAY);
 
@@ -88,8 +116,8 @@ void test_new_zentra_array(){
     }
 
     // Manually insert values
-    arr->elements[0] = new_zentra_integer(10);
-    arr->elements[1] = new_zentra_float(2.5f);
+    arr->elements[0] = new_zentra_integer(arena, 10);
+    arr->elements[1] = new_zentra_float(arena, 2.5f);
 
     // Verify inserted values
     CU_ASSERT_EQUAL(arr->elements[0]->type, INTEGER);
@@ -98,8 +126,8 @@ void test_new_zentra_array(){
     CU_ASSERT_EQUAL(arr->elements[1]->type, FLOAT);
     CU_ASSERT_DOUBLE_EQUAL(arr->elements[1]->data.v_float, 2.5f, 0.0001);
 
-    // Free all memory safely
-    free_zentra_object(arr_obj);
+    // destroy the arena, no need to free individual objects or the array
+    zentra_arena_destroy(arena);
 }
 
 

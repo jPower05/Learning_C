@@ -1,4 +1,4 @@
-#include "zentra_object.h"
+#include "../include/zentra_object.h"
 
 bool zentra_array_set(zentra_obj_t *arr, size_t index, zentra_obj_t *value){
     if(arr == NULL || value == NULL){
@@ -14,10 +14,6 @@ bool zentra_array_set(zentra_obj_t *arr, size_t index, zentra_obj_t *value){
         return false;
     }
 
-    // free previous value if it exists
-    if(array->elements[index] != NULL){
-        free_zentra_object(array->elements[index]);
-    }
     array->elements[index] = value;
     return true;
 }
@@ -32,7 +28,7 @@ zentra_obj_t *zentra_array_get(zentra_obj_t *arr, size_t index){
 
     zentra_array_t *array = arr->data.v_array;
 
-    if(array->capacity <= index){
+    if(!array || array->capacity <= index){
         return NULL;
     }
 
@@ -46,10 +42,13 @@ bool zentra_array_contains(zentra_obj_t *arr, zentra_obj_t *value){
     if(arr->type != ARRAY){
         return false;
     }
-    size_t len = arr->data.v_array->capacity;
-    zentra_obj_t **elements = arr->data.v_array->elements;
-    for(size_t i = 0; i < len; i++){
-        if(compare_zentra_object(elements[i], value)){
+    if(value == NULL){
+        return false;
+    }
+    
+    zentra_array_t *array = arr->data.v_array;
+    for(size_t i = 0; i < array->capacity; i++){
+        if(array->elements[i] && compare_zentra_object(array->elements[i], value)){
             return true;
         }
     }
@@ -64,14 +63,11 @@ void zentra_array_clear(zentra_obj_t *arr){
         return;
     }
 
-    size_t len = arr->data.v_array->capacity;
+    zentra_array_t *array = arr->data.v_array;
     
-    for(size_t i = 0; i < len; i++){
-        zentra_obj_t *element = zentra_array_get(arr, i);
-        if(element){
-            free_zentra_object(element);
-            zentra_array_set(arr,i,NULL);
-        }
+    for(size_t i = 0; i < array->capacity; i++){
+        // no freeing - just clear the pointer
+        array->elements[i] = NULL;  
     }
 }
 

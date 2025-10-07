@@ -1,16 +1,21 @@
 #include <CUnit/CUnit.h>
-#include "../src/zentra_object.h"
+#include "../include/zentra_object.h"
 #include <stdlib.h>
 
 // Test: create array and verify basic set/get
 void test_array_set_get(void) {
-    zentra_obj_t *arr = new_zentra_array(5);
+    // create a temporary arena for allocation
+    zentra_arena_t *arena = zentra_arena_create(1024);
+    CU_ASSERT_PTR_NOT_NULL(arena);          
+
+    // Create a new array of size 5
+    zentra_obj_t *arr = new_zentra_array(arena, 5);
     CU_ASSERT_PTR_NOT_NULL(arr);
     CU_ASSERT_EQUAL(arr->type, ARRAY);
 
     // Create integers
-    zentra_obj_t *val1 = new_zentra_integer(42);
-    zentra_obj_t *val2 = new_zentra_integer(99);
+    zentra_obj_t *val1 = new_zentra_integer(arena, 42);
+    zentra_obj_t *val2 = new_zentra_integer(arena, 99);
 
     // Valid set/get
     CU_ASSERT_TRUE(zentra_array_set(arr, 0, val1));
@@ -29,24 +34,33 @@ void test_array_set_get(void) {
     CU_ASSERT_PTR_NULL(zentra_array_get(arr, 10));
 
     // cleanup
-    free_zentra_object(arr);
-    // NOTE: don't free val1/val2 separately if array takes ownership
+    // destroy the arena, no need to free individual objects
+    zentra_arena_destroy(arena);
 }
 
 // Test: ensure array initialized with NULLs
 void test_array_default_values(void) {
-    zentra_obj_t *arr = new_zentra_array(3);
+    // create a temporary arena for allocation
+    zentra_arena_t *arena = zentra_arena_create(1024);
+    CU_ASSERT_PTR_NOT_NULL(arena);  
+
+    zentra_obj_t *arr = new_zentra_array(arena, 3);
     for (size_t i = 0; i < 3; i++) {
         CU_ASSERT_PTR_NULL(zentra_array_get(arr, i));
     }
-    free_zentra_object(arr);
+    // destroy the arena, no need to free individual objects
+    zentra_arena_destroy(arena);
 }
 
 // Test: overwrite element
 void test_array_overwrite(void) {
-    zentra_obj_t *arr = new_zentra_array(2);
-    zentra_obj_t *val1 = new_zentra_integer(7);
-    zentra_obj_t *val2 = new_zentra_integer(21);
+    // create a temporary arena for allocation
+    zentra_arena_t *arena = zentra_arena_create(1024);
+    CU_ASSERT_PTR_NOT_NULL(arena);  
+
+    zentra_obj_t *arr = new_zentra_array(arena, 2);
+    zentra_obj_t *val1 = new_zentra_integer(arena, 7);
+    zentra_obj_t *val2 = new_zentra_integer(arena, 21);
 
     CU_ASSERT_TRUE(zentra_array_set(arr, 0, val1));
     CU_ASSERT_TRUE(zentra_array_set(arr, 0, val2)); // overwrite
@@ -55,7 +69,8 @@ void test_array_overwrite(void) {
     CU_ASSERT_PTR_NOT_NULL(res);
     CU_ASSERT_EQUAL(res->data.v_int, 21);
 
-    free_zentra_object(arr);
+    // destroy the arena, no need to free individual objects
+    zentra_arena_destroy(arena);    
 }
 
 // Registration function called from test_runner.c
