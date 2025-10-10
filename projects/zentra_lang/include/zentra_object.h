@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include "zentra_vm.h"
 
 // Forward declarations (opaque types)
 typedef struct ZentraObject zentra_obj_t;
@@ -35,20 +36,22 @@ typedef union ZentraObjectData{
 }zentra_obj_data_t;
 
 typedef struct ZentraObject{
+    bool is_marked;
     zentra_obj_type_t type;
     zentra_obj_data_t data;
 } zentra_obj_t;
 
-
+zentra_obj_t *new_zentra_object(zentra_vm_t *vm, zentra_obj_type_t type);
 
 void free_zentra_object(zentra_obj_t *obj);
-zentra_obj_t *new_zentra_integer(int value);
-zentra_obj_t *new_zentra_float(float value);
-zentra_obj_t *new_zentra_string(const char *value);
+zentra_obj_t *new_zentra_integer(zentra_vm_t *vm, int value);
+zentra_obj_t *new_zentra_float(zentra_vm_t *vm, float value);
+zentra_obj_t *new_zentra_string(zentra_vm_t *vm, const char *value);
 zentra_obj_t *new_zentra_vector3(
+    zentra_vm_t *vm,
     zentra_obj_t *x, zentra_obj_t *y, zentra_obj_t *z
 );
-zentra_obj_t *new_zentra_array(size_t capacity);
+zentra_obj_t *new_zentra_array(zentra_vm_t *vm, size_t capacity);
 
 // Array functionality
 bool zentra_array_set(zentra_obj_t *arr, size_t index, zentra_obj_t *value);
@@ -63,4 +66,7 @@ bool compare_zentra_object(zentra_obj_t *a, zentra_obj_t *b);
 
 // helper functions
 bool zentra_object_is_numeric(zentra_obj_t *obj);
+
+
+
 
